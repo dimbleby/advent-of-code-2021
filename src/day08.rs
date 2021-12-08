@@ -90,13 +90,13 @@ impl FromStr for Note {
         let inputs = sections.next().ok_or(ParseError)?;
         for (index, word) in inputs.split_whitespace().enumerate() {
             let mut letters = word.chars().collect::<Vec<_>>();
-            letters.sort();
+            letters.sort_unstable();
             patterns[index] = letters.into_iter().collect();
         }
         let outputs = sections.next().ok_or(ParseError)?;
         for (index, word) in outputs.split_whitespace().enumerate() {
             let mut letters = word.chars().collect::<Vec<_>>();
-            letters.sort();
+            letters.sort_unstable();
             output[index] = letters.into_iter().collect();
         }
 

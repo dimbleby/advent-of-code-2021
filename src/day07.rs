@@ -1,7 +1,7 @@
 fn part_one(positions: &[isize]) -> isize {
     // Any median will do.
     let mut sorted = positions.to_vec();
-    sorted.sort();
+    sorted.sort_unstable();
     let length = positions.len();
     let middle = length / 2;
     let median = sorted[middle];
