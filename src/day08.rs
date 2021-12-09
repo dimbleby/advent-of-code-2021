@@ -117,10 +117,7 @@ pub(crate) fn day08() {
         .map(|note| {
             note.output
                 .iter()
-                .filter(|&digit| {
-                    let segments = digit.len();
-                    segments == 2 || segments == 3 || segments == 4 || segments == 7
-                })
+                .filter(|digit| matches!(digit.len(), 2 | 3 | 4 | 7))
                 .count()
         })
         .sum();
