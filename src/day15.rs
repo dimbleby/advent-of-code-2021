@@ -115,7 +115,7 @@ impl RiskMap {
 
     fn extended(&self) -> Self {
         let mut extended_levels = vec![Vec::with_capacity(5 * self.columns); 5 * self.rows];
-        for y in 0..5 * self.columns {
+        for (y, extended_row) in extended_levels.iter_mut().enumerate() {
             for x in 0..5 * self.rows {
                 let orig_x = x % self.columns;
                 let orig_y = y % self.rows;
@@ -124,7 +124,7 @@ impl RiskMap {
                 if new_risk > 9 {
                     new_risk %= 9;
                 }
-                extended_levels[y].push(new_risk);
+                extended_row.push(new_risk);
             }
         }
         Self::new(extended_levels)
