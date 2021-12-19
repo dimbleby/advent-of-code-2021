@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Sub;
 use std::str::FromStr;
 
+use itertools::Itertools;
+
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 struct Vec3D {
     x: isize,
@@ -47,6 +49,12 @@ impl Vec3D {
     fn distance(&self, other: &Self) -> isize {
         (self.x - other.x).abs() + (self.y - other.y).abs() + (self.z - other.z).abs()
     }
+
+    fn normalized(&self) -> Self {
+        let mut coords = vec![self.x.abs(), self.y.abs(), self.z.abs()];
+        coords.sort_unstable();
+        Self::new(coords[0], coords[1], coords[2])
+    }
 }
 
 impl Sub for Vec3D {
@@ -71,35 +79,62 @@ impl FromStr for Vec3D {
 #[derive(Clone, Debug)]
 struct Scanner {
     readings: HashSet<Vec3D>,
-    rotations: Vec<HashSet<Vec3D>>,
+    fingerprint: HashMap<Vec3D, Vec<Vec3D>>,
 }
 
 impl Scanner {
     fn new(readings: HashSet<Vec3D>) -> Self {
-        let mut rotations = vec![HashSet::default(); 24];
-        for reading in &readings {
-            for (point, set) in reading.rotations().into_iter().zip(rotations.iter_mut()) {
-                set.insert(point);
-            }
+        let mut fingerprint: HashMap<Vec3D, Vec<Vec3D>> = HashMap::default();
+        for pair in readings.iter().cloned().combinations(2) {
+            let diff = (pair[0] - pair[1]).normalized();
+            let entry = fingerprint.entry(diff).or_insert_with(Vec::new);
+            entry.extend(pair.into_iter());
         }
 
         Self {
             readings,
-            rotations,
+            fingerprint,
         }
     }
 
+    fn rotations(&self) -> Vec<HashSet<Vec3D>> {
+        let mut result = vec![HashSet::default(); 24];
+        for reading in &self.readings {
+            for (point, set) in reading.rotations().into_iter().zip(result.iter_mut()) {
+                set.insert(point);
+            }
+        }
+        result
+    }
+
     fn find_match(&self, other: &Scanner) -> Option<(Vec3D, HashSet<Vec3D>)> {
-        for readings in &other.rotations {
-            for (p1, p2) in itertools::iproduct!(self.readings.iter(), readings.iter()) {
-                let offset = *p2 - *p1;
-                let realigned = readings.iter().map(|reading| *reading - offset).collect();
-                let hits = self.readings.intersection(&realigned).count();
-                if hits >= 12 {
-                    return Some((offset, realigned));
+        let matching_prints: HashSet<_> = self
+            .fingerprint
+            .keys()
+            .filter(|key| other.fingerprint.contains_key(key))
+            .collect();
+
+        if matching_prints.len() < 50 {
+            return None;
+        }
+
+        for print in matching_prints {
+            for (p1, p2) in itertools::iproduct!(
+                self.fingerprint[print].iter(),
+                other.fingerprint[print].iter()
+            ) {
+                let p2_rotations = p2.rotations();
+                let offsets = p2_rotations.iter().map(|point| *point - *p1);
+                for (offset, readings) in offsets.zip(other.rotations()) {
+                    let realigned = readings.iter().map(|reading| *reading - offset).collect();
+                    let hits = self.readings.intersection(&realigned).count();
+                    if hits >= 12 {
+                        return Some((offset, realigned));
+                    }
                 }
             }
         }
+
         None
     }
 }
@@ -130,7 +165,7 @@ pub(crate) fn day19() {
     let mut full_map: HashSet<Vec3D> = start.readings.clone();
     let mut mapped: HashMap<Vec3D, Scanner> = hashmap! { Vec3D::default() => start };
 
-    while let Some(mut unfixed) = unmapped.pop_front() {
+    while let Some(unfixed) = unmapped.pop_front() {
         let mut realigned = None;
         for fixed in mapped.values() {
             realigned = fixed.find_match(&unfixed);
@@ -145,16 +180,17 @@ pub(crate) fn day19() {
             }
             Some((position, alignment)) => {
                 full_map.extend(alignment.iter());
-                unfixed.readings = alignment;
-                mapped.insert(position, unfixed);
+                mapped.insert(position, Scanner::new(alignment));
             }
         }
     }
 
     println!("Part one answer is {}", full_map.len());
 
-    let part_two = itertools::iproduct!(mapped.keys(), mapped.keys())
-        .map(|(point1, point2)| point1.distance(point2))
+    let part_two = mapped
+        .keys()
+        .combinations(2)
+        .map(|points| points[0].distance(points[1]))
         .max()
         .unwrap();
 
