@@ -24,10 +24,6 @@ mod day22;
 mod day23;
 mod day24;
 mod day25;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate maplit;
 
 #[derive(StructOpt)]
 struct Cli {

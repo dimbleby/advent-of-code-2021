@@ -1,3 +1,4 @@
+use maplit::hashmap;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Sub;
 use std::str::FromStr;

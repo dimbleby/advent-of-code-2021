@@ -1,3 +1,4 @@
+use maplit::hashmap;
 use std::collections::HashMap;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
